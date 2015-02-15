@@ -1,10 +1,13 @@
 __author__ = 'babya_000'
 import twitter
+import re
 
-CONSUMER_KEY = 
-CONSUMER_SECRET = 
-OAUTH_TOKEN = 
-OAUTH_TOKEN_SECRET = 
+with open("settings.ini") as f:
+    lines = f.readlines()
+    CONSUMER_KEY = re.search("=\s*'(.*)'", lines[0]).group(1)
+    CONSUMER_SECRET = re.search("=\s*'(.*)'", lines[1]).group(1)
+    OAUTH_TOKEN = re.search("=\s*'(.*)'", lines[2]).group(1)
+    OAUTH_TOKEN_SECRET = re.search("=\s*'(.*)'", lines[3]).group(1)
 
 auth = twitter.oauth.OAuth(OAUTH_TOKEN, OAUTH_TOKEN_SECRET,
                            CONSUMER_KEY, CONSUMER_SECRET)
