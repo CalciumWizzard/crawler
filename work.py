@@ -3,6 +3,7 @@ import twitter
 import re
 import json
 import sys
+from datetime import datetime
 from prettytable import PrettyTable
 
 with open("settings.ini") as f:
@@ -21,9 +22,12 @@ print twitter_api
 WORLD_WOE_ID = 1
 US_WOE_ID = 23424977
 
+count = 10
 if len(sys.argv) > 1:
     q = sys.argv[1]
-    print "Searching " + q
+    if len(sys.argv) > 2:
+        count = sys.argv[2]
+    print "Searching {0} {1} times".format(q, count)
 else:
     q = raw_input("Write Your Twit=")
 
@@ -42,12 +46,11 @@ tweets_file = open("tweets_bodies.txt", "w+")
 table_file = open("tweets_table.txt", "w+")
 
 # See https://dev.twitter.com/docs/api/1.1/get/search/tweets
-count = 10
 search_results = twitter_api.search.tweets(q=q, count=count) #, result_type="popular")
 
 statuses = search_results['statuses']
 
-for _ in range(50):
+for _ in range(10):
     print "Length of statuses", len(statuses)
     try:
         next_results = search_results['search_metadata']['next_results']
@@ -64,36 +67,45 @@ print "Found " + `len(statuses)` + " tweet objects"
 # informace pro twitter, jak
 retweet_uniq_text = {}
 count = 0
-retweets = []
+retweets = 0
+retweets_dict = {}
 for status in statuses:
     count += 1
     key = status['text']
     if status.has_key('retweeted_status') and not retweet_uniq_text.has_key(key):
-        if "Mon Feb 16 " not in status['created_at']:
-            pass
-        retweet_uniq_text[key] = 1
-        retweets.append([status['retweet_count'],
+        retweets += 1
+        retweet_uniq_text[key] = True
+        tweet_date = datetime.strptime(status['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+        tweet_dt = tweet_date.strftime("%Y-%m-%d")
+        tweet = [status['retweet_count'],
              status['retweeted_status']['user']['screen_name'],
              status['text'],
              status['id'],
-             status['created_at']])
+             status['created_at']]
+        if retweets_dict.has_key(tweet_dt):
+            retweets_dict[tweet_dt].append(tweet)
+        else:
+            retweets_dict[tweet_dt] = [tweet]
 
-print "Found " + `len(retweets)` + " retweets"
+print "Found " + `retweets` + " retweets"
 twitter_highest_retweets = {}
 # 5 first max retweets
-sorted_retweets = sorted(retweets, reverse=True)[:5]
+sorted_retweets = {}
 retweets_ids = []
-# create array with ids
-for item in sorted_retweets:
-    retweets_ids.append(int(item[3]))
+for k, value in retweets_dict.iteritems():
+    max_5retweets = sorted(value, reverse=True)[:5]
+    sorted_retweets[k] = max_5retweets
+    # create array with ids
+    for item in max_5retweets:
+        retweets_ids.append(int(item[3]))
 
 #find corresponding tweets
-tweets_5max = [None]*5
+tweets_5max = []
 for status in statuses:
     tweet_id = int(status['id'])
     if tweet_id in retweets_ids:
         index = retweets_ids.index(tweet_id)
-        tweets_5max[index] = status
+        tweets_5max.append(status)
 
 for status in tweets_5max:
     if status:
@@ -102,8 +114,6 @@ for status in tweets_5max:
 if not len(statuses):
     print "No tweets found"
     exit(-1)
-
-myfile.write(json.dumps(statuses[0], indent=1))
 
 screen_names = [ user_mention['screen_name']
                  for status in statuses
@@ -114,7 +124,11 @@ hashtags = [ hashtag['text']
                  for hashtag in status['entities']['hashtags'] ]
 # PrettyTalbe = z informace , top 5 twittu
 pt = PrettyTable(field_names=['Count', 'Screen Name', 'Text', 'Id', 'Time'])
-[ pt.add_row(row) for row in sorted(retweets, reverse=True)[:5] ]
+for key, value in sorted_retweets.iteritems():
+    print "Max retweets {0} for date {1}".format(len(value), key)
+    for row in value:
+        pt.add_row(row)
+
 pt.max_width['Text'] = 60
 pt.align= 'l'
 print >>table_file, pt
