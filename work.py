@@ -50,7 +50,7 @@ search_results = twitter_api.search.tweets(q=q, count=count) #, result_type="pop
 
 statuses = search_results['statuses']
 
-for _ in range(10):
+for _ in range(100):
     print "Length of statuses", len(statuses)
     try:
         next_results = search_results['search_metadata']['next_results']
@@ -66,27 +66,31 @@ print >> tweets_file, json.dumps(statuses, indent=1)
 print "Found " + `len(statuses)` + " tweet objects"
 # informace pro twitter, jak
 retweet_uniq_text = {}
-count = 0
 retweets = 0
 retweets_dict = {}
 for status in statuses:
-    count += 1
-    key = status['text']
-    if status.has_key('retweeted_status') and not retweet_uniq_text.has_key(key):
-        retweets += 1
+    tweet_date = datetime.strptime(status['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+    tweet_dt = tweet_date.strftime("%Y-%m-%d")
+    key = status['text'] + tweet_dt
+    if not status.has_key('retweeted_status'):
+        continue
+    if not retweet_uniq_text.has_key(key):
+        retweets = 1
         retweet_uniq_text[key] = True
-        tweet_date = datetime.strptime(status['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
-        tweet_dt = tweet_date.strftime("%Y-%m-%d")
         tweet = [status['retweet_count'],
              status['retweeted_status']['user']['screen_name'],
              status['text'],
              status['id'],
-             status['created_at']]
+             status['created_at'],
+             retweets]
         if retweets_dict.has_key(tweet_dt):
             retweets_dict[tweet_dt].append(tweet)
         else:
             retweets_dict[tweet_dt] = [tweet]
-
+    else:
+        for index, atweet in enumerate(retweets_dict[tweet_dt]):
+            if atweet[2] == status['text']:
+                retweets_dict[tweet_dt][index][5] += 1
 print "Found " + `retweets` + " retweets"
 twitter_highest_retweets = {}
 # 5 first max retweets
@@ -123,7 +127,7 @@ hashtags = [ hashtag['text']
              for status in statuses
                  for hashtag in status['entities']['hashtags'] ]
 # PrettyTalbe = z informace , top 5 twittu
-pt = PrettyTable(field_names=['Count', 'Screen Name', 'Text', 'Id', 'Time'])
+pt = PrettyTable(field_names=['Count', 'Screen Name', 'Text', 'Id', 'Time', 'Today'])
 for key, value in sorted_retweets.iteritems():
     print "Max retweets {0} for date {1}".format(len(value), key)
     for row in value:
