@@ -22,7 +22,7 @@ print twitter_api
 WORLD_WOE_ID = 1
 US_WOE_ID = 23424977
 
-count = 10
+count = 1
 if len(sys.argv) > 1:
     q = sys.argv[1]
     if len(sys.argv) > 2:
@@ -91,13 +91,12 @@ for status in statuses:
         for index, atweet in enumerate(retweets_dict[tweet_dt]):
             if atweet[2] == status['text']:
                 retweets_dict[tweet_dt][index][5] += 1
-print "Found " + `retweets` + " retweets"
 twitter_highest_retweets = {}
 # 5 first max retweets
 sorted_retweets = {}
 retweets_ids = []
 for k, value in retweets_dict.iteritems():
-    max_5retweets = sorted(value, reverse=True)[:5]
+    max_5retweets = sorted(value, key=lambda i: i[5], reverse=True)[:5]
     sorted_retweets[k] = max_5retweets
     # create array with ids
     for item in max_5retweets:
