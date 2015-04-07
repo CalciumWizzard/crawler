@@ -3,6 +3,11 @@ import twitter
 import re
 import json
 import sys
+import  Tkinter as tk
+import threading
+import time
+import Queue
+import ttk
 from datetime import datetime
 from prettytable import PrettyTable
 from Tkinter import *
@@ -54,9 +59,12 @@ class Application(Frame):
         search_results = twitter_api.search.tweets(q=q, count=count) #, result_type="popular")
 
         statuses = search_results['statuses']
-
+        self.running = True
         for _ in range(int(self.multipvar.get())):
+
             print "Length of statuses", len(statuses)
+            msg = "Length of statuses %s" % len(statuses)
+            self.queue.put(msg)
             try:
                 next_results = search_results['search_metadata']['next_results']
             except KeyError, e: # No more results when next_results doesn't exist
@@ -66,7 +74,7 @@ class Application(Frame):
 
             search_results = twitter_api.search.tweets(**kwargs)
             statuses += search_results['statuses']
-
+        self.running = False
         print >> tweets_file, json.dumps(statuses, indent=1)
         print "Found " + `len(statuses)` + " tweet objects"
         # informace pro twitter, jak
@@ -140,9 +148,9 @@ class Application(Frame):
         pt.max_width['Text'] = 60
         pt.align= 'l'
         print >>table_file, pt
-        tkMessageBox.showinfo( "Best 5", pt )
+        tkMessageBox.showinfo( "Best 5", pt)
    def createWidgets(self):
-       self.CANCEL = Button(self, fg = "red", bg = "blue")
+       self.CANCEL = Button(self, bg = "red", fg = "blue")
        self.CANCEL["text"] = "Quit"
        self.CANCEL["command"] = self.quit
        self.CANCEL.grid(row = 1 , column = 1)
@@ -165,14 +173,38 @@ class Application(Frame):
 
        self.WORDS = Label(self)
        self.WORDS["text"] = "Write your tweet"
-       self.WORDS.grid(row = 3, column = 3)
+       self.WORDS.grid(row = 1, column = 5)
 
        self.WRITING = Entry(root, bd =5)
-       self.WRITING.grid(row = 3, column = 4)
+       self.WRITING.grid(row = 1, column = 6)
    def __init__(self, master = NONE):
         Frame.__init__(self, master)
         self.grid()
         self.createWidgets()
+        self.queue = Queue.Queue()
+        self.gui = GuiPart(master, self.queue)
+        threading.Thread(target=self.selection).start()
+        self.periodicCall()
+   def periodicCall(self):
+        self.gui.processIncoming()
+        if self.running:
+            self.master.after(10, self.periodicCall)
+class GuiPart:
+    def __init__(self, master, queue):
+        self.queue = queue
+        self.pgBar = ttk.Progressbar(master, orient='horizontal',
+                                     length=300, mode='determinate')
+        self.lb = tk.Listbox(master, width=20, height=5)
+        self.pgBar.grid(padx=20, pady=20)
+        self.lb.grid(row=1, column=0, padx=20, pady=20)
+    def processIncoming(self):
+        while self.queue.qsize():
+            try:
+                msg = self.queue.get(0)
+                self.lb.insert('end', msg)
+                self.pgBar.step(25)
+            except Queue.Empty:
+                pass
 
 root = Tk()
 app = Application(master=root)
