@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 from prettytable import PrettyTable
 from Tkinter import *
+import  os
 import tkMessageBox
 
 
@@ -137,38 +138,39 @@ class Application(Frame):
             for row in value:
                 pt.add_row(row)
 
-        pt.max_width['Text'] = 60
+        pt.max_width['Text'] = 25
         pt.align= 'l'
         print >>table_file, pt
-        tkMessageBox.showinfo( "Best 5", pt )
+        table_file.close()
+        os.system("notepad tweets_table.txt")
    def createWidgets(self):
-       self.CANCEL = Button(self, fg = "red", bg = "blue")
+       self.CANCEL = Button(self, bg = "red", fg = "blue")
        self.CANCEL["text"] = "Quit"
        self.CANCEL["command"] = self.quit
-       self.CANCEL.grid(row = 1 , column = 1)
+       self.CANCEL.grid(row = 3, column = 1)
 
        self.RUN = Button(self)
        self.RUN["text"] = "Start"
        self.RUN["fg"] = "blue"
        self.RUN["command"] = self.selection
-       self.RUN.grid(row = 1, column = 2)
+       self.RUN.grid(row = 3, column = 2)
        self.var = DoubleVar()
        self.multipvar = DoubleVar()
 
        self.TWEETS = Scale(self)
        self.TWEETS["variable"] = self.var
-       self.TWEETS.grid(row = 1, column = 3)
+       self.TWEETS.grid(row = 3, column = 4)
 
        self.MULTITWEETS = Scale(self)
        self.MULTITWEETS["variable"] = self.multipvar
-       self.MULTITWEETS.grid(row = 1, column = 4)
+       self.MULTITWEETS.grid(row = 3, column = 5)
 
        self.WORDS = Label(self)
        self.WORDS["text"] = "Write your tweet"
-       self.WORDS.grid(row = 3, column = 3)
+       self.WORDS.grid(row = 1, column = 2)
 
-       self.WRITING = Entry(root, bd =5)
-       self.WRITING.grid(row = 3, column = 4)
+       self.WRITING = Entry(root, bd =6)
+       self.WRITING.grid(row = 1, columnspan = 2, padx = 20, pady = 20)
    def __init__(self, master = NONE):
         Frame.__init__(self, master)
         self.grid()
@@ -176,7 +178,6 @@ class Application(Frame):
 
 root = Tk()
 app = Application(master=root)
-app.size()
 app.master.title("My 10/10 Application")
 app.master.minsize(360,240)
 app.mainloop()
